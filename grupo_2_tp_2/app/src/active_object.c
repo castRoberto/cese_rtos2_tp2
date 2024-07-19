@@ -34,16 +34,21 @@
 
 /********************** inclusions *******************************************/
 
-
-#include "ao_ui.h"
 #include "active_object.h"
-#include "ao_led.h"
 
 /********************** macros and definitions *******************************/
+
+#define C_EMPTY_QUEUE				  (0u)
 
 /********************** internal data declaration ****************************/
 
 /********************** internal functions declaration ***********************/
+
+/********************** internal data definition *****************************/
+
+/********************** external data definition *****************************/
+
+/********************** internal functions definition ************************/
 
 static void _task (void *parameters) {
 
@@ -55,8 +60,14 @@ static void _task (void *parameters) {
 
 		if (pdPASS == xQueueReceive(ao->event_queue_h, msg, portMAX_DELAY)) {
 
+			LOGGER_INFO("[_task]: %s", ao->task_name);
 			ao->handler ((void*)msg);
-			LOGGER_INFO(ao->task_name);
+
+			if (true == ao->memory_friendly) {
+
+				ao_destroy (ao);
+
+			}
 
 		}
 
@@ -65,15 +76,11 @@ static void _task (void *parameters) {
 
 }
 
-/********************** internal data definition *****************************/
-
-/********************** external data definition *****************************/
-
-/********************** internal functions definition ************************/
-
 /********************** external functions definition ************************/
 
-void ao_ui_init (ao_t* ao, handlerFunc_t handler) {
+op_result_e ao_init (ao_t* ao, handlerFunc_t handler) {
+
+	op_result_e result = OP_ERR;
 
 	if (NULL != ao  && NULL != handler) {
 
@@ -95,18 +102,9 @@ void ao_ui_init (ao_t* ao, handlerFunc_t handler) {
 
 		ao->handler = handler;
 
-	}
+		ao->run = true;
 
-}
-
-
-op_result_e ao_ui_send_msg (ao_t* ao, void* msg) {
-
-	op_result_e result = SEND_ERR;
-
-	if (NULL != ao  && NULL != msg) {
-
-		result = (pdPASS == xQueueSend (ao->event_queue_h, msg, 0));
+		result = (NULL != ao->event_queue_h && pdPASS == status);
 
 	}
 
@@ -115,22 +113,46 @@ op_result_e ao_ui_send_msg (ao_t* ao, void* msg) {
 }
 
 
-op_result_e ao_ui_destroy (ao_t* ao) {
+void ao_destroy (ao_t* ao) {
 
 	if (NULL != ao) {
 
-		vQueueDelete (ao->event_queue_h);
+		if (C_EMPTY_QUEUE == uxQueueMessagesWaiting (ao->event_queue_h)) {
 
-		vTaskDelete (ao->thread_h);
+			LOGGER_INFO("[ao_ui_destroy]: destroy %s", ao->task_name);
 
-		ao->handler = NULL;
+			ao->thread_h = NULL;
+
+			ao->handler = NULL;
+
+			ao->run = false;
+
+			vQueueDelete (ao->event_queue_h);
+
+			ao->event_queue_h = NULL;
+
+			vTaskDelete (NULL);
+
+		}
+
 
 	}
-
-	return (NULL == ao->event_queue_h && NULL == ao->thread_h);
 
 }
 
 
+op_result_e ao_send_msg (ao_t* ao, void* msg) {
+
+	op_result_e result = OP_ERR;
+
+	if (NULL != ao  && NULL != msg && NULL != ao->event_queue_h) {
+
+		result = (pdPASS == xQueueSend (ao->event_queue_h, msg, 0));
+
+	}
+
+	return result;
+
+}
 
 /********************** end of file ******************************************/

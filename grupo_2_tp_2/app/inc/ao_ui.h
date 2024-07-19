@@ -48,22 +48,22 @@ extern "C" {
 
 /********************** typedef **********************************************/
 
-typedef enum {
+/* Led Active Object Message definition */
+typedef struct {
 
-	SEND_ERR = 0,
-	SEND_OK = 1,
+	ao_t* ao;
+	handlerFunc_t handler;
+	void* msg;
 
-} op_result_e;
+} ao_ui_even_t;
 
 /********************** external data declaration ****************************/
 
+extern ao_t ao_ui;
+
 /********************** external functions declaration ***********************/
 
-void ao_ui_init (ao_t* ao, handlerFunc_t handler);
-
-op_result_e ao_ui_send_msg (ao_t* ao, void* msg);
-
-op_result_e ao_ui_destroy (ao_t* ao);
+void task_ui_handler (void* msg);
 
 /********************** End of CPP guard *************************************/
 #ifdef __cplusplus

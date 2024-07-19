@@ -49,10 +49,10 @@
 
 #define TASK_PERIOD_MS_           (1000u)
 
-#define QUEUE_LEN				  (5u)
-#define QUEUE_SIZE_EVEN			  (sizeof (ao_led_even_t))
-#define TASK_PRIORITY			  (1u)
-#define MS_DELAY				  (1000u)
+#define LED_QUEUE_LEN				  (10u)
+#define LED_QUEUE_SIZE_EVEN			  (sizeof (ao_led_even_t))
+#define LED_TASK_PRIORITY			  (1u)
+#define LED_MS_DELAY				  (2500u)
 
 /********************** internal data declaration ****************************/
 
@@ -60,69 +60,27 @@
 
 /********************** internal data definition *****************************/
 
-typedef enum
-{
-  LED_COLOR_NONE,
-  LED_COLOR_RED,
-  LED_COLOR_GREEN,
-  LED_COLOR_BLUE,
-  LED_COLOR_WHITE,
-  LED_COLOR__N,
-} led_color_t;
-
 /********************** external data definition *****************************/
 
-ao_t ao_led_red = (ao_t) {
+
+ao_t ao_led = (ao_t) {
 
 	.event_queue_h = NULL,
-	.event_queue_len = QUEUE_LEN,
-	.event_size = QUEUE_SIZE_EVEN,
-	.queue_name = "LED RED queue",
+	.event_queue_len = LED_QUEUE_LEN,
+	.event_size = LED_QUEUE_SIZE_EVEN,
+	.queue_name = "AO LED queue",
 
 		// Thread
-	.task_name = "LED RED task",
+	.task_name = "AO LED task",
 	.thread_h = NULL,
-	.priority = TASK_PRIORITY,
+	.priority = LED_TASK_PRIORITY,
 	.stack_size = configMINIMAL_STACK_SIZE,
 
 		/* Process */
 	.handler = NULL,
 
-};
-
-ao_t ao_led_green = (ao_t) {
-
-	.event_queue_h = NULL,
-	.event_queue_len = QUEUE_LEN,
-	.event_size = QUEUE_SIZE_EVEN,
-	.queue_name = "LED GREEN queue",
-
-		// Thread
-	.task_name = "LED GREEN task",
-	.thread_h = NULL,
-	.priority = TASK_PRIORITY,
-	.stack_size = configMINIMAL_STACK_SIZE,
-
-		/* Process */
-	.handler = NULL,
-
-};
-
-ao_t ao_led_blue = (ao_t) {
-
-	.event_queue_h = NULL,
-	.event_queue_len = QUEUE_LEN,
-	.event_size = QUEUE_SIZE_EVEN,
-	.queue_name = "LED BLUE queue",
-
-		// Thread
-	.task_name = "LED BLUE task",
-	.thread_h = NULL,
-	.priority = TASK_PRIORITY,
-	.stack_size = configMINIMAL_STACK_SIZE,
-
-		/* Process */
-	.handler = NULL,
+	.run = false,
+	.memory_friendly = true,
 
 };
 
@@ -132,9 +90,11 @@ ao_t ao_led_blue = (ao_t) {
 
 void task_led_handler (void* msg) {
 
-	TickType_t delay = pdMS_TO_TICKS(MS_DELAY);
+	TickType_t delay = pdMS_TO_TICKS(LED_MS_DELAY);
 
 	ao_led_even_t* event = (ao_led_even_t*) msg;
+
+	LOGGER_INFO("[task_led_handler]: proccess %s", event->led_name);
 
 	HAL_GPIO_WritePin(event->led_port, event->led_pin, event->led_state);
 

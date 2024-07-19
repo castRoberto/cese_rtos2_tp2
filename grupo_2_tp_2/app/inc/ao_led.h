@@ -32,8 +32,8 @@
  * @author : Grupo 2
  */
 
-#ifndef __ACTIVE_OBJECT_H__
-#define __ACTIVE_OBJECT_H__
+#ifndef __AO_LED_H__
+#define __AO_LED_H__
 
 /********************** CPP guard ********************************************/
 #ifdef __cplusplus
@@ -42,53 +42,48 @@ extern "C" {
 
 /********************** inclusions *******************************************/
 
-#include <stdio.h>
-#include <stdint.h>
-#include <stdbool.h>
-
-#include "main.h"
-#include "cmsis_os.h"
-#include "board.h"
-#include "logger.h"
-#include "dwt.h"
+#include "active_object.h"
 
 /********************** macros ***********************************************/
 
+#define LED_NAME_LEN 10
+
 /********************** typedef **********************************************/
 
-typedef void (*handlerFunc_t)(void* event);
+/* Led Even definition*/
+typedef enum {
 
-/* Active Object definition */
+  AO_LED_EVENT_OFF = 0,
+  AO_LED_EVENT_ON = 1,
+  AO_LED_EVENT__N = 2,
+
+} ao_led_state_t;
+
+
+/* Led Active Object Message definition */
 typedef struct {
 
-	/* OS */
+	/* Hardware */
+	GPIO_TypeDef* led_port;
+	uint32_t led_pin;
+	ao_led_state_t led_state;
+	char led_name[LED_NAME_LEN];
 
-	// Queue
-	QueueHandle_t event_queue_h;
-	uint16_t event_queue_len;
-	size_t event_size;
-	char queue_name[configMAX_TASK_NAME_LEN];
-
-	// Thread
-	char task_name[configMAX_TASK_NAME_LEN];
-	TaskHandle_t thread_h;
-	UBaseType_t priority;
-	uint16_t stack_size;
-
-	/* Process */
-	handlerFunc_t handler;
-
-} ao_t;
+} ao_led_even_t;
 
 /********************** external data declaration ****************************/
 
+extern ao_t ao_led;
+
 /********************** external functions declaration ***********************/
+
+void task_led_handler (void* msg);
 
 /********************** End of CPP guard *************************************/
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __ACTIVE_OBJECT_H__ */
+#endif /* __AO_LED_H__ */
 /********************** end of file ******************************************/
 

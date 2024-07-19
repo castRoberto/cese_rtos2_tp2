@@ -61,7 +61,8 @@ ao_led_even_t ao_led_event_red = (ao_led_even_t) {
 
 	.led_port = LED_RED_PORT,
 	.led_pin = LED_RED_PIN,
-	.led_state = AO_LED_EVENT_ON
+	.led_state = AO_LED_EVENT_ON,
+	.led_name = "LED RED",
 
 };
 
@@ -69,7 +70,8 @@ ao_led_even_t ao_led_event_green = (ao_led_even_t) {
 
 	.led_port = LED_GREEN_PORT,
 	.led_pin = LED_GREEN_PIN,
-	.led_state = AO_LED_EVENT_ON
+	.led_state = AO_LED_EVENT_ON,
+	.led_name = "LED GREEN",
 
 };
 
@@ -77,7 +79,8 @@ ao_led_even_t ao_led_event_blue = (ao_led_even_t) {
 
 	.led_port = LED_BLUE_PORT,
 	.led_pin = LED_BLUE_PIN,
-	.led_state = AO_LED_EVENT_ON
+	.led_state = AO_LED_EVENT_ON,
+	.led_name = "LED BLUE",
 
 };
 
@@ -144,7 +147,11 @@ void task_button(void* argument)
 
   while(true) {
 
-	op_result_e result = SEND_ERR;
+	op_result_e result = OP_ERR;
+	ao_ui_even_t ao_ui_event = { 0 };
+
+	ao_ui_event.ao = &ao_led;
+	ao_ui_event.handler = task_led_handler;
 
     GPIO_PinState button_state;
     button_state = HAL_GPIO_ReadPin(BUTTON_PORT, BUTTON_PIN);
@@ -157,17 +164,23 @@ void task_button(void* argument)
         break;
       case BUTTON_TYPE_PULSE:
         LOGGER_INFO("button pulse");
-        result = ao_ui_send_msg (&ao_led_red, (void*) &ao_led_event_red);
+
+        ao_ui_event.msg = (void*)&ao_led_event_red;
+
         process = true;
         break;
       case BUTTON_TYPE_SHORT:
         LOGGER_INFO("button short");
-        result = ao_ui_send_msg (&ao_led_green, (void*) &ao_led_event_green);
+
+        ao_ui_event.msg = (void*)&ao_led_event_green;
+
         process = true;
         break;
       case BUTTON_TYPE_LONG:
         LOGGER_INFO("button long");
-        result = ao_ui_send_msg (&ao_led_blue, (void*) &ao_led_event_blue);
+
+        ao_ui_event.msg = (void*)&ao_led_event_blue;
+
         process = true;
         break;
       default:
@@ -175,7 +188,13 @@ void task_button(void* argument)
         break;
     }
 
-    if (SEND_OK != result && true == process) {
+    if (true == process) {
+
+    	result = ao_send_msg (&ao_ui, (void*) &ao_ui_event);
+
+    }
+
+    if (OP_OK != result && true == process) {
 
     	LOGGER_INFO("Send error!!!");
 

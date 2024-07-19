@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Sebastian Bedin <sebabedin@gmail.com>.
+ * Copyright (c) 2024 Grupo 2.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,59 +29,93 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- * @author : Sebastian Bedin <sebabedin@gmail.com>
+ * @author : Grupo 2
  */
 
 /********************** inclusions *******************************************/
 
-#include "main.h"
-#include "cmsis_os.h"
-#include "logger.h"
-#include "dwt.h"
-#include "board.h"
 
-#include "task_button.h"
-#include "task_led.h"
-#include "ao_led.h"
 #include "ao_ui.h"
+#include "active_object.h"
 
 /********************** macros and definitions *******************************/
 
+#define UI_QUEUE_LEN				  (15u)
+#define UI_QUEUE_SIZE_EVEN			  (sizeof (ao_ui_even_t))
+#define UI_TASK_PRIORITY			  (1u)
 
 /********************** internal data declaration ****************************/
 
 /********************** internal functions declaration ***********************/
 
+/********************** internal functions definition ************************/
+
 /********************** internal data definition *****************************/
 
-/********************** external data declaration *****************************/
+/********************** external data definition *****************************/
 
-TaskHandle_t task_button_h;
+ao_t ao_ui = (ao_t) {
+
+	.event_queue_h = NULL,
+	.event_queue_len = UI_QUEUE_LEN,
+	.event_size = UI_QUEUE_SIZE_EVEN,
+	.queue_name = "AO UI queue",
+
+		// Thread
+	.task_name = "AO UI task",
+	.thread_h = NULL,
+	.priority = UI_TASK_PRIORITY,
+	.stack_size = configMINIMAL_STACK_SIZE,
+
+		/* Process */
+	.handler = NULL,
+
+	.run = false,
+	.memory_friendly = false,
+
+};
+
 
 /********************** external functions definition ************************/
-void app_init(void) {
 
-	ao_ui_init (&ao_led_red, task_led_handler);
-	ao_ui_init (&ao_led_green, task_led_handler);
-	ao_ui_init (&ao_led_blue, task_led_handler);
+void task_ui_handler (void* msg) {
 
+	ao_ui_even_t* ao_ui_event = (ao_ui_even_t*) msg;
 
-	BaseType_t status;
+	op_result_e result = ao_send_msg (ao_ui_event->ao, ao_ui_event->msg);
 
-	status = xTaskCreate (task_button,
-		  	  	  	  	  "task_button",
-						  configMINIMAL_STACK_SIZE,
-						  NULL,
-						  tskIDLE_PRIORITY + (1u),
-						  &task_button_h);
+	if (OP_OK != result) {
 
-	configASSERT(pdPASS == status);
+		if (false == ao_ui_event->ao->run) {
 
+			LOGGER_INFO("[task_ui_handler]: AO init");
 
+			result = ao_init (ao_ui_event->ao, ao_ui_event->handler);
 
-	LOGGER_INFO("app init");
+			if (OP_ERR == result) {
 
-	cycle_counter_init();
+				LOGGER_INFO("[task_ui_handler]: Cannot create more resources");
+
+			}
+
+			result = ao_send_msg (ao_ui_event->ao, ao_ui_event->msg);
+
+			if (OP_ERR == result) {
+
+				LOGGER_INFO("[task_ui_handler]: Null message or missized queue");
+
+			}
+
+		} else {
+
+			LOGGER_INFO("[task_ui_handler]: AO QUEUE saturated");
+
+		}
+
+	}
+
 }
+
+
 
 /********************** end of file ******************************************/

@@ -32,8 +32,8 @@
  * @author : Grupo 2
  */
 
-#ifndef __AO_LED_H__
-#define __AO_LED_H__
+#ifndef __ACTIVE_OBJECT_H__
+#define __ACTIVE_OBJECT_H__
 
 /********************** CPP guard ********************************************/
 #ifdef __cplusplus
@@ -42,47 +42,70 @@ extern "C" {
 
 /********************** inclusions *******************************************/
 
-#include "active_object.h"
+#include <stdio.h>
+#include <stdint.h>
+#include <stdbool.h>
+
+#include "main.h"
+#include "cmsis_os.h"
+#include "board.h"
+#include "logger.h"
+#include "dwt.h"
 
 /********************** macros ***********************************************/
 
 /********************** typedef **********************************************/
 
-/* Led Even definition*/
 typedef enum {
 
-  AO_LED_EVENT_OFF = 0,
-  AO_LED_EVENT_ON = 1,
-  AO_LED_EVENT__N = 2,
+	OP_ERR = 0,
+	OP_OK = 1,
 
-} ao_led_state_t;
+} op_result_e;
 
+
+/* Function pointer handler */
+typedef void (*handlerFunc_t)(void* event);
 
 /* Active Object definition */
 typedef struct {
 
-	/* Hardware */
-	GPIO_TypeDef* led_port;
-	uint32_t led_pin;
-	ao_led_state_t led_state;
+	/* OS */
+	bool run;
+	bool memory_friendly;
 
-} ao_led_even_t;
+	// Queue
+	QueueHandle_t event_queue_h;
+	uint16_t event_queue_len;
+	size_t event_size;
+	char queue_name[configMAX_TASK_NAME_LEN];
+
+	// Thread
+	char task_name[configMAX_TASK_NAME_LEN];
+	TaskHandle_t thread_h;
+	UBaseType_t priority;
+	uint16_t stack_size;
+
+	/* Process */
+	handlerFunc_t handler;
+
+} ao_t;
 
 /********************** external data declaration ****************************/
 
-extern ao_t ao_led_red;
-extern ao_t ao_led_green;
-extern ao_t ao_led_blue;
-
 /********************** external functions declaration ***********************/
 
-void task_led_handler (void* msg);
+op_result_e ao_init (ao_t* ao, handlerFunc_t handler);
+
+void ao_destroy (ao_t* ao);
+
+op_result_e ao_send_msg (ao_t* ao, void* msg);
 
 /********************** End of CPP guard *************************************/
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __AO_LED_H__ */
+#endif /* __ACTIVE_OBJECT_H__ */
 /********************** end of file ******************************************/
 
